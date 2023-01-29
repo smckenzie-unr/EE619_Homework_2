@@ -40,83 +40,104 @@ def barker(b, tau, chip_tau, fc, Fs):
     nChip = np.sin(constants.pi * tChip * fc + constants.pi)
     signal = np.zeros(nPulseSamps * 4)
     b_idx = 0
-    for chipIdx in range(0, nPulseSamps, nChipSamps):
+    for chipIdx in range(0, nPulseSamps, nChipSamps - 1):
         print(chipIdx)
         if(b[b_idx] > 0):
             signal[chipIdx:chipIdx + nChipSamps] = pChip
         elif(b[b_idx] < 0):
             signal[chipIdx:chipIdx + nChipSamps] = nChip
         b_idx += 1
+        if(b_idx >= len(b)):
+            break
     plt.figure(10)
     plt.plot(signal)
     
     
 
+def problem_one():
+    b = [1, 1, 1, 1, 1, -1, -1, 1, 1, -1, 1, -1, 1]
+    tau = 13e-6
+    sig_len = tau / .25
+    chip_len = 50
+    samps_per_pulse = len(b) * chip_len
+    signal = np.zeros(samps_per_pulse * 4)
+    b_idx = 0
+    for idx in range(0, int(len(signal) * 0.25), chip_len):
+        if(b[b_idx] == 1):
+            for sub_idx in range(0, chip_len, 1):
+                signal[idx + sub_idx] = 1.0
+        elif(b[b_idx] == -1):
+            for sub_idx in range(0, chip_len, 1):
+                signal[idx + sub_idx] = -1.0
+        b_idx +=1
+    t = np.linspace(0.0, 4 * tau, len(signal))
+    plt.figure(1)
+    plt.plot(t,signal)
+    matched_sig = np.flip(signal[0:samps_per_pulse])
+    matched_out = np.convolve(signal, matched_sig)
+    plt.figure(2)
+    plt.plot(matched_sig)
+    plt.figure(3)
+    plt.plot(20.0*np.log10(np.abs(np.fft.fftshift(np.fft.fft(matched_out)))))
+    #plt.plot(np.abs(np.fft.fftshift(np.fft.fft(matched_out))))
+    #plt.ylim(20, 100)
+    #plt.xlim(2183, 3015)
+    t_m = np.linspace(0.0, 4 * tau, len(matched_out))
+    plt.figure(4)
+    plt.plot(t_m, matched_out)
+    barker(b, 13e-6, 1e-6, 4e6, 100e6)
 
-b = [1, 1, 1, 1, 1, -1, -1, 1, 1, -1, 1, -1, 1]
-tau = 13e-6
-sig_len = tau / .25
-chip_len = 50
-samps_per_pulse = len(b) * chip_len
-signal = np.zeros(samps_per_pulse * 4)
-b_idx = 0
-for idx in range(0, int(len(signal) * 0.25), chip_len):
-    if(b[b_idx] == 1):
-        for sub_idx in range(0, chip_len, 1):
-            signal[idx + sub_idx] = 1.0
-    elif(b[b_idx] == -1):
-        for sub_idx in range(0, chip_len, 1):
-            signal[idx + sub_idx] = -1.0
-    b_idx +=1
-t = np.linspace(0.0, 4 * tau, len(signal))
-plt.figure(1)
-plt.plot(t,signal)
-matched_sig = np.flip(signal[0:samps_per_pulse])
-matched_out = np.convolve(signal, matched_sig)
-plt.figure(2)
-plt.plot(matched_sig)
-plt.figure(3)
-plt.plot(20.0*np.log10(np.abs(np.fft.fftshift(np.fft.fft(matched_out)))))
-#plt.plot(np.abs(np.fft.fftshift(np.fft.fft(matched_out))))
-#plt.ylim(20, 100)
-#plt.xlim(2183, 3015)
-t_m = np.linspace(0.0, 4 * tau, len(matched_out))
-plt.figure(4)
-plt.plot(t_m, matched_out)
+
+def problem_two():
+    B = 25e6
+    tau = 1e-6
+    Fs = 5 * B
+    #Fc = B / 2
+    #nSamps = int(Fs * tau)
+    #nSamps = nearest_base2(int(Fs * tau))
+    nSamps = int(((tau/2) - (-tau/2)) * Fs)
+    t = np.linspace(-tau/2, tau/2, nSamps)
+    #t = np.linspace(0.0, tau, nSamps)
+    #f = np.linspace(Fc - B / 2, Fc + B /2, len(t))
+    signal = np.zeros(nSamps*4)
+    signal[0:len(t)] = np.exp(1j*constants.pi*(B/tau)*((t-tau)**2))
+    #signal[0:len(t)] = np.sin(constants.pi * t * f)
+    #signal[0:len(t)] += np.random.randn(len(signal[0:len(t)])) * 10**(-60/20.0) 
+    matched_sig = np.conjugate(np.flip(signal))
+    #matched_sig = np.conjugate(np.flip(signal[0:len(t)]))
+    filter_output = np.convolve(signal, matched_sig)
+    plt.figure(5)
+    plt.plot(signal)
+    #plt.figure(6)
+    #plt.plot(np.abs(np.fft.rfft(signal)))
+    #plt.plot(20*np.log10(np.abs(np.fft.rfft(signal))))
+    window_1 = np.sin(constants.pi * t / tau)
+    wind_sig_1 = np.zeros(nSamps*4)
+    wind_sig_1[0:len(t)] = np.multiply(signal[0:len(t)], window_1)
+    plt.figure(7)
+    plt.plot(wind_sig_1)
+    plt.figure(6)
+    #plt.plot(np.abs(np.fft.rfft(wind_sig_1)))
+    #plt.plot(20.0*np.log10(np.abs(np.fft.rfft(wind_sig_1))))[0:len(t)])
+    sig1 = np.convolve(wind_sig_1, matched_sig)
+    plt.plot(abs(sig1)/max(abs(sig1)))
+    window_2 = np.sin(constants.pi * t / tau) ** 2
+    wind_sig_2 = np.zeros(nSamps*4)
+    wind_sig_2[0:len(t)] = np.multiply(signal[0:len(t)], window_2)
+    plt.figure(8)
+    plt.plot(wind_sig_2)
+    plt.figure(11)
+    sig2 = np.convolve(wind_sig_2,matched_sig)
+    plt.plot(abs(sig2)/max(abs(sig2)))
+    #plt.plot(np.abs(np.fft.rfft(wind_sig_2)))
+    #plt.plot(20.0*np.log10(np.abs(np.fft.rfft(wind_sig_2))))
+    plt.figure(9)
+    plt.plot(abs(filter_output)/max(abs(filter_output)))
 
 
 
-B = 25e6
-tau = 1e-6
-Fs = 20 * B
-Fc = B / 2
-#nSamps = int(Fs * tau)
-nSamps = nearest_base2(int(Fs * tau))
-t = np.linspace(0.0, tau, nSamps)
-f = np.linspace(Fc - B / 2, Fc + B /2, len(t))
-signal = np.zeros(nSamps*4)
-signal[0:len(t)] = np.cos(constants.pi * t * f)
-signal[0:len(t)] += np.random.randn(len(signal[0:len(t)])) * 10**(-60/20.0) 
-plt.figure(5)
-plt.plot(signal)
-plt.figure(6)
-#plt.plot(np.abs(np.fft.rfft(signal)))
-plt.plot(20*np.log10(np.abs(np.fft.rfft(signal))))
-window_1 = np.sin(constants.pi * t / tau)
-wind_sig_1 = np.zeros(nSamps*4)
-wind_sig_1[0:len(t)] = np.multiply(signal[0:len(t)], window_1)
-plt.figure(7)
-plt.plot(wind_sig_1)
-plt.figure(6)
-#plt.plot(np.abs(np.fft.rfft(wind_sig_1)))
-plt.plot(20.0*np.log10(np.abs(np.fft.rfft(wind_sig_1))))
-window_2 = np.sin(constants.pi * t / tau) ** 2
-wind_sig_2 = np.zeros(nSamps*4)
-wind_sig_2[0:len(t)] = np.multiply(signal[0:len(t)], window_2)
-plt.figure(8)
-plt.plot(wind_sig_2)
-plt.figure(6)
-#plt.plot(np.abs(np.fft.rfft(wind_sig_2)))
-plt.plot(20.0*np.log10(np.abs(np.fft.rfft(wind_sig_2))))
 
-barker(b, 13e-6, 1e-6, 4e6, 100e6)
+if __name__ == "__main__":
+    problem_one()
+    problem_two()
+    #problem_three()
