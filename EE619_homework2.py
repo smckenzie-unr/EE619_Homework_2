@@ -111,7 +111,7 @@ def problem_two(time_shift = True):
     Fs = 20 * beta 
     
     t = np.linspace(-tau / 2, tau / 2, int((tau / 2 - (-tau / 2)) * Fs)) 
-    t_val = np.linspace(-tau / 2, tau / 2, len(t) * 4 - 1) 
+    t_val = np.linspace(-tau, tau, len(t) * 4 - 1) 
     t_wind = np.linspace(0, tau, int((tau / 2 - (-tau / 2)) * Fs))
     t_plot = np.linspace(0, 2 * tau, int((tau / 2 - (-tau / 2)) * Fs) * 2)
     
@@ -135,7 +135,8 @@ def problem_two(time_shift = True):
     wind1_sig_filt = np.conjugate(np.flip(wind_sig_1))
     wind1_output = np.convolve(modSig_in, wind1_sig_filt)
     
-    window_2 = np.sin(np.sin(pi * (t_wind / tau)))
+    # window_2 = np.sin(np.sin(pi * (t_wind / tau)))
+    window_2 = np.sin(pi * (t_wind / tau)) ** 2
     wind_sig_2 = np.zeros(len(t) * 2, dtype = complex)
     wind_sig_2[0:len(t)] = complex_multipy(mod_signal[0:len(t)], window_2)
     wind2_sig_filt = np.conjugate(np.flip(wind_sig_2))
@@ -171,7 +172,7 @@ def problem_two(time_shift = True):
     ax.plot(t_val / tau, abs(wind1_output) / max(abs(wind1_output)))
     ax.plot(t_val / tau, abs(wind2_output) / max(abs(wind2_output)))
     #plt.xlim(t_val[0] / tau, t_val[len(t_val) - 1] / tau)
-    ax.set_xlim(-0.3, 0.3)
+    ax.set_xlim(-0.6, 0.6)
     ax.grid(True)
     ax.legend(["Matched Pulse", "Matched LFM", "Weights 1 Matched LFM", "Weights 2 Matched LFM"], loc = "upper left")
     plt.xlabel("Normalized time [t / tau]")
